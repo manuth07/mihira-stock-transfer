@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MihiraStockTransfer.Api.Tests/MihiraStockTransfer.Api.Tests.csproj" />
+  <Project Path="MihiraStockTransfer.Api/MihiraStockTransfer.Api.csproj" />
+</Solution>
