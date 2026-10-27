@@ -159,6 +159,39 @@ All items are stored and transferred as packaged units. Quantities represent who
 
 ---
 
+## 💻 Running the Frontend
+
+### Prerequisites & Installation
+Install frontend dependencies cleanly from `package-lock.json`:
+```bash
+cd frontend
+npm ci
+```
+
+### Run Frontend Development Server
+Start the Vite development server:
+```bash
+npm run dev
+```
+The frontend UI is served on `http://localhost:5173`.
+
+### Development Ports & Proxy Behavior
+* **Frontend Dev Server:** `http://localhost:5173`
+* **Backend API:** `http://localhost:5197`
+* **Vite Development Proxy:** Requests from the browser to `/api/*` (e.g. `/api/branches`, `/api/products`, `/api/branches/1/stock`, `/api/transfers`) are proxied directly to `http://localhost:5197/*` with `/api` stripped via URL rewrite.
+* *Note:* This proxy setup is strictly a development convenience to avoid cross-origin overhead during local development and does not represent production hosting configuration.
+
+### User Flow
+1. **View Branch Stock:** The page opens with the **Branch stock** matrix, displaying all five packaged products and their respective counts across Colombo, Kandy, and Galle. A manual **Refresh** button is provided to re-query current database levels.
+2. **Execute Stock Transfer:** In the **New transfer** section, the user selects a source branch, a distinct destination branch (the selected source branch is automatically disabled in the destination selector), a product, and enters a positive whole-number package quantity. When a source branch and product are selected, available package inventory and package description are dynamically displayed as guidance.
+3. **Audit History & Refresh:** Upon clicking **Transfer stock**, the system disables inputs to prevent duplicate submissions and posts to `/transfers`. On success, a clear confirmation is displayed, the quantity is reset while preserving selections, and both the stock matrix and **Transfer history** audit table are refreshed in real-time, displaying local date and time formatting.
+
+### Bundled Typography (Inter)
+* The UI uses the **Inter** font family, installed locally via `@fontsource/inter` (weights `400`, `500`, `600`, and `700`) and bundled directly through Vite.
+* No external network requests to Google Fonts or third-party font CDNs are made at runtime.
+
+---
+
 ## 🧪 Running the Backend & Automated Tests
 
 ### Run Backend API
