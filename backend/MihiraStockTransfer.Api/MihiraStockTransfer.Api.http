@@ -1,5 +1,9 @@
 @MihiraStockTransfer.Api_HostAddress = http://localhost:5197
 
+# ===================================================================
+# READ-ONLY QUERIES (No database mutations)
+# ===================================================================
+
 ### 1. Get all branches
 GET {{MihiraStockTransfer.Api_HostAddress}}/branches
 Accept: application/json
@@ -18,8 +22,93 @@ Accept: application/json
 
 ###
 
-### 4. Get branch stock for nonexistent branch (ID: 999) - returns 404
+### 4. Get branch stock for nonexistent branch (ID: 999) - Returns 404 Not Found
 GET {{MihiraStockTransfer.Api_HostAddress}}/branches/999/stock
+Accept: application/json
+
+###
+
+# ===================================================================
+# STOCK TRANSFER MUTATIONS (Changes database state)
+# ===================================================================
+
+### 5. Valid Transfer: Move 5 packages of Rice from Colombo (1) to Kandy (2)
+# [MUTATION]: Deducts 5 from Colombo, adds 5 to Kandy, writes transfer history
+POST {{MihiraStockTransfer.Api_HostAddress}}/transfers
+Content-Type: application/json
+Accept: application/json
+
+{
+  "fromBranchId": 1,
+  "toBranchId": 2,
+  "productId": 1,
+  "quantity": 5
+}
+
+###
+
+### 6. Rejected: Insufficient Stock - Returns 409 Conflict (No mutation)
+POST {{MihiraStockTransfer.Api_HostAddress}}/transfers
+Content-Type: application/json
+Accept: application/json
+
+{
+  "fromBranchId": 1,
+  "toBranchId": 2,
+  "productId": 1,
+  "quantity": 9999
+}
+
+###
+
+### 7. Rejected: Same Source & Destination Branch - Returns 400 Bad Request (No mutation)
+POST {{MihiraStockTransfer.Api_HostAddress}}/transfers
+Content-Type: application/json
+Accept: application/json
+
+{
+  "fromBranchId": 1,
+  "toBranchId": 1,
+  "productId": 1,
+  "quantity": 5
+}
+
+###
+
+### 8. Rejected: Zero Quantity - Returns 400 Bad Request (No mutation)
+POST {{MihiraStockTransfer.Api_HostAddress}}/transfers
+Content-Type: application/json
+Accept: application/json
+
+{
+  "fromBranchId": 1,
+  "toBranchId": 2,
+  "productId": 1,
+  "quantity": 0
+}
+
+###
+
+### 9. Rejected: Nonexistent Product - Returns 404 Not Found (No mutation)
+POST {{MihiraStockTransfer.Api_HostAddress}}/transfers
+Content-Type: application/json
+Accept: application/json
+
+{
+  "fromBranchId": 1,
+  "toBranchId": 2,
+  "productId": 999,
+  "quantity": 5
+}
+
+###
+
+# ===================================================================
+# TRANSFER HISTORY (Read-only query)
+# ===================================================================
+
+### 10. Get Transfer History: Returns successful transfers ordered newest first
+GET {{MihiraStockTransfer.Api_HostAddress}}/transfers
 Accept: application/json
 
 ###
