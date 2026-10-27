@@ -1,0 +1,47 @@
+# === Build Outputs & Dependencies ===
+bin/
+obj/
+**/bin/
+**/obj/
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+dist-ssr/
+
+# === SQLite Databases ===
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+
+# === Test Results & Code Coverage ===
+TestResults/
+*.trx
+coverage/
+
+# === Secrets & Environment-Specific Settings ===
+appsettings*.local.json
+appsettings.Secrets.json
+*.local
+.env.local
+.env.*.local
+
+# === Logs ===
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# === IDE & Machine Specific Files ===
+.vs/
+*.user
+*.userosscache
+*.suo
+.idea/
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
