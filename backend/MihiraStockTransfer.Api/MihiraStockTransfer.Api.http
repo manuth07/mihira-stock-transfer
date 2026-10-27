@@ -1,6 +1,25 @@
 @MihiraStockTransfer.Api_HostAddress = http://localhost:5197
 
-GET {{MihiraStockTransfer.Api_HostAddress}}/weatherforecast/
+### 1. Get all branches
+GET {{MihiraStockTransfer.Api_HostAddress}}/branches
+Accept: application/json
+
+###
+
+### 2. Get all products
+GET {{MihiraStockTransfer.Api_HostAddress}}/products
+Accept: application/json
+
+###
+
+### 3. Get branch stock for Colombo (ID: 1)
+GET {{MihiraStockTransfer.Api_HostAddress}}/branches/1/stock
+Accept: application/json
+
+###
+
+### 4. Get branch stock for nonexistent branch (ID: 999) - returns 404
+GET {{MihiraStockTransfer.Api_HostAddress}}/branches/999/stock
 Accept: application/json
 
 ###

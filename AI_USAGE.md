@@ -26,3 +26,34 @@
 
 ---
 
+
+## Phase 2: Read APIs for Branches, Products, and Stock
+
+### Factual Record of AI Assistance
+* **Response Contracts:**
+  * Created immutable record DTOs under `backend/MihiraStockTransfer.Api/Contracts/Responses/`: `BranchResponse`, `ProductResponse`, `StockItemResponse`, and `BranchStockResponse`.
+* **Query Service Layer:**
+  * Defined `IInventoryQueryService` with asynchronous read-only methods (`GetBranchesAsync`, `GetProductsAsync`, `GetBranchStockAsync`).
+  * Implemented `InventoryQueryService` using EF Core `AsNoTracking()` queries, direct projections to DTOs, stable ordering (`Id` / `ProductId`), and null handling for non-existent branch queries while preserving zero-quantity items.
+  * Registered service as scoped in `Program.cs`.
+* **API Controllers:**
+  * Implemented `BranchesController` (`GET /branches`, `GET /branches/{id}/stock`) and `ProductsController` (`GET /products`) with attribute routing without `/api` prefix.
+  * Configured RFC 7807 `ProblemDetails` response (404) for missing branch lookups.
+  * Added accurate response-type metadata (`ProducesResponseType`).
+* **Tooling & HTTP Specification:**
+  * Updated `backend/MihiraStockTransfer.Api/MihiraStockTransfer.Api.http` with requests covering all three read endpoints and the 404 non-existent branch case using the development URL `http://localhost:5197`.
+* **Automated & Live Verification:**
+  * Added `InventoryQueryServiceTests.cs` covering stable ordering, zero-quantity inclusion, empty stock items for branches with no inventory, non-existent branch 404 ProblemDetails, and read-query non-mutation.
+  * Executed live HTTP calls against the running ASP.NET Core API verifying JSON serialization, status codes, and ProblemDetails output.
+* **Documentation:**
+  * Updated `README.md` with available read endpoints, sample 200 OK and 404 responses, and launch/testing instructions.
+
+---
+
+### Personal Log (To be completed by Candidate)
+* **Personal Learning:**
+  * <!-- Candidate to fill in: what you learned during this phase -->
+* **Time Spent:**
+  * <!-- Candidate to fill in: total time spent on this phase -->
+* **AI Mistakes & Corrections:**
+  * <!-- Candidate to fill in: any AI missteps or corrections observed -->
