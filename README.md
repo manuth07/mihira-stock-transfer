@@ -15,11 +15,74 @@ Based on the actual project configuration:
 ## 🏗️ Architecture & Technology Stack
 
 The project follows a layered architecture within a single API project:
-* **Controllers:** HTTP request handling and response delegation.
-* **Contracts/Requests & Responses:** API contracts separated from persistence models.
-* **Services:** Business operations and stock transfer validation rules.
+* **Controllers:** HTTP request handling and response delegation (`BranchesController`, `ProductsController`).
+* **Contracts/Requests & Responses:** API DTOs separated from persistence models (`BranchResponse`, `ProductResponse`, `StockItemResponse`, `BranchStockResponse`).
+* **Services:** Application operations and query abstractions (`IInventoryQueryService`, `InventoryQueryService`).
 * **Models:** Entity Framework persistence entities (`Branch`, `Product`, `Stock`, `Transfer`).
 * **Data:** `AppDbContext`, Fluent API configurations, and `DatabaseInitializer`.
+
+---
+
+## 📡 Available API Endpoints (Phase 2 Read APIs)
+
+All endpoints use root routing (no `/api` prefix):
+
+| Method | Endpoint | Description | Status Codes |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/branches` | Returns all branches ordered by ID. | `200 OK` |
+| `GET` | `/products` | Returns all products ordered by ID. | `200 OK` |
+| `GET` | `/branches/{id}/stock` | Returns current stock levels for the specified branch ID. | `200 OK`, `404 Not Found` |
+
+### Sample Response: `GET /branches/1/stock` (`200 OK`)
+```json
+{
+  "branchId": 1,
+  "branchName": "Colombo",
+  "items": [
+    {
+      "productId": 1,
+      "productName": "Rice",
+      "packageSize": "1 kg bag",
+      "quantity": 50
+    },
+    {
+      "productId": 2,
+      "productName": "Sugar",
+      "packageSize": "1 kg bag",
+      "quantity": 40
+    },
+    {
+      "productId": 3,
+      "productName": "Milk",
+      "packageSize": "1 L carton",
+      "quantity": 30
+    },
+    {
+      "productId": 4,
+      "productName": "Tea",
+      "packageSize": "200 g packet",
+      "quantity": 20
+    },
+    {
+      "productId": 5,
+      "productName": "Biscuits",
+      "packageSize": "100 g packet",
+      "quantity": 60
+    }
+  ]
+}
+```
+
+### Sample Response: `GET /branches/999/stock` (`404 Not Found`)
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+  "title": "Branch not found",
+  "status": 404,
+  "detail": "Branch with ID 999 does not exist.",
+  "traceId": "00-..."
+}
+```
 
 ---
 
@@ -72,8 +135,12 @@ All items are stored and transferred as packaged units. Quantities represent who
 ```bash
 dotnet run --project backend/MihiraStockTransfer.Api/MihiraStockTransfer.Api.csproj
 ```
+API runs on `http://localhost:5197` (and `https://localhost:7229`).
 
 ### Run Backend Tests
 ```bash
 dotnet test backend/MihiraStockTransfer.Api.Tests/MihiraStockTransfer.Api.Tests.csproj
 ```
+
+### Manual Testing with `.http` File
+Use `backend/MihiraStockTransfer.Api/MihiraStockTransfer.Api.http` with the VS Code REST Client or Antigravity IDE HTTP runner.
