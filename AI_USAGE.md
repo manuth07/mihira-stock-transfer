@@ -54,10 +54,19 @@ This document provides a realistic, concise record of how AI assistance was used
 
 ---
 
-### Personal Log (To be completed by Candidate)
+### Personal Log 
 * **Personal Learning:**
-  * <!-- Candidate to fill in: what you learned during this phase -->
+  * **SQLite Concurrency & Atomic Predicates:** Learned how SQLite handles write locks and how combining explicit database transactions with atomic conditional SQL updates (`ExecuteUpdateAsync` with `WHERE Quantity >= requested`) guarantees inventory conservation under concurrent requests without needing distributed lock managers.
+  * **Transaction Rollback Testing with Interceptors:** Learned how to use an EF Core `SaveChangesInterceptor` (`SavingChangesAsync`) to simulate a mid-transaction database failure, proving that atomic SQL deductions roll back cleanly when subsequent entity saves fail.
+  * **Test Isolation on Windows:** Learned that SQLite connection pooling (`Pooling=True`) keeps open OS file handles on Windows; configuring test databases with `Pooling=False` and flushing pools via `SqliteConnection.ClearAllPools()` is essential for reliable file deletion during test teardown.
+  * **Timestamp Serialization Nuance:** Observed that SQLite stores datetime values without timezone metadata, causing EF Core to return `DateTimeKind.Unspecified` (omitting `Z` in JSON serialization on `GET /transfers`). Learned the importance of explicit client-side timezone normalization.
+  * **Accessible Controlled Inputs:** Deepened understanding of building controlled numeric inputs with WAI-ARIA `spinbutton` semantics, native stepper controls, and keyboard `ArrowUp`/`ArrowDown` support.
+
 * **Time Spent:**
-  * <!-- Candidate to fill in: total time spent on this phase -->
+  * Approximately 3 hours (7:30 PM – 10:30 PM) for development across all phases, plus ~15 minutes for documentation, ER diagram authoring, and test suite verification.
+
 * **AI Mistakes & Corrections:**
-  * <!-- Candidate to fill in: any AI missteps or corrections observed -->
+  * **Background Process File Locking:** When verifying the running API, the background `MihiraStockTransfer.Api.exe` process remained active on Windows, locking the compiled assembly during subsequent `dotnet test` builds. Identified the lock (`MSB3026`) and terminated the lingering PID using `Stop-Process -Force`.
+  * **React 19 Effect State Warning:** An early implementation of `App.jsx` triggered ESLint's `react-hooks/set-state-in-effect` rule by calling synchronous `setState(true)` at the top of an effect function. Corrected this by refactoring the initial load cleanly inside `useEffect` and reserving loading setters for user-initiated refreshes.
+  * **Git Branch Synchronization:** When starting Phase 4, the workspace was still on the Phase 3 branch (`feature/stock-transfers`). Instead of improperly switching branches autonomously, the prompt constraint was flagged and the branch was manually switched to `test/stock-transfer-rules` before modifying code.
+  * **Timestamp Formatting Contract:** The API serialized in-memory timestamps with `Z` on `POST /transfers`, but returned unzoned ISO strings on `GET /transfers` from SQLite. Corrected the frontend to explicitly inspect timestamps and append `Z` to prevent local-time parsing errors in JavaScript.

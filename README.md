@@ -66,6 +66,34 @@ erDiagram
 
 ---
 
+## 📐 Assumptions and Scope
+
+### Inventory and Quantities
+* **Fixed Packaged Units:** Products represent fixed-size packaged items. Quantity counts whole packages, not loose weight or volume (e.g. transferring 5 units of "Rice — 1 kg bag" moves five 1 kg bags).
+* **Immutable Package Sizes:** Package sizes cannot be altered during a transfer. Different packaging configurations constitute distinct products; unit conversion is outside the scope of this implementation.
+* **Assessment Reference Data:** Starting stock levels represent illustrative test data rather than live enterprise stock.
+* **Complete Product Coverage:** Every branch has an initial stock record for every seeded product. A quantity of zero denotes that the branch currently has none available.
+
+### Reference Data
+* **Predefined Branches:** Colombo, Kandy, and Galle are predefined reference branches.
+* **Predefined Products:** The five packaged products are fixed seed data.
+* **Read-Only Reference Operations:** Branch and product creation, modification, and deletion are outside the scope. The API independently validates supplied IDs on every transfer request to protect against direct API calls.
+
+### Stock Movement
+* **Inter-Branch Transfer Scope:** The application focuses specifically on stock transfers between retail branches rather than the broader inventory lifecycle.
+* **Excluded Operations:** Sales, supplier purchase deliveries, customer returns, damaged stock write-offs, and manual adjustments are outside the scope.
+* **Strict Conservation:** A successful transfer deducts the specified quantity from the sending branch and adds the exact same quantity to the receiving branch. The total quantity of that product across all branches remains unchanged.
+
+### History
+* **Successful Transfers Only:** The transfer history table logs completed, confirmed transfers.
+* **No Rejection Persistence:** Rejected transfer attempts return descriptive error messages (RFC 7807) without mutating stock or creating audit rows. Persistent logging of rejected attempts is outside the scope.
+
+### Persistence and Timestamps
+* **Preservation of Existing State:** Startup seeding inserts missing reference data idempotently without overwriting existing stock levels or clearing transfer history.
+* **Timezone Consistency:** Transfer timestamps are recorded by the server in UTC and formatted in the user interface to the browser's local time zone.
+
+---
+
 ## 🚀 How to Run the Project Locally (Step-by-Step)
 
 Follow these clear instructions to run both the backend and frontend locally.
@@ -257,3 +285,11 @@ The automated test suite (`backend/MihiraStockTransfer.Api.Tests`) validates all
 * **Palette:** Built with a white-and-navy aesthetic (`#FFFFFF`, `#142B49`), restrained borders (`#E2E8F0`), high-visibility red error banners (`#FEE2E2` bg, `#EF4444` border, `#B91C1C` text), and green success banners (`#DCFCE7` bg, `#22C55E` border, `#15803D` text).
 * **Controlled Digits Stepper:** The quantity input uses `inputMode="numeric"`, accepts only ASCII digits `/^[0-9]*$/` (rejecting invalid edits and non-digit pastes), provides integrated up/down stepper buttons, and supports `ArrowUp`/`ArrowDown` keyboard navigation conforming to W3C WAI-ARIA spinbutton accessibility.
 * **Development Proxy:** In development, Vite proxies `/api/*` requests to `http://localhost:5197/*` with path rewriting to prevent CORS overhead.
+
+---
+
+## 🔮 Limitations and Future Improvements
+
+* **Schema Evolution:** EF Core `EnsureCreated` initializes the database schema quickly on first launch but does not manage migrations on existing schemas. Introducing EF Core migrations (`dotnet ef migrations`) is recommended for production lifecycle management.
+* **Idempotency Keys:** Client retries are not deduplicated using idempotency keys. If a request's completion is uncertain (e.g. dropped network connection), users should refresh stock and transfer history before resubmitting.
+* **Extended Capabilities:** In a larger production deployment, useful extensions would include purchase order receipts, manual stock adjustments, a dedicated rejected-attempt audit log, and pagination or search on the transfer history.
