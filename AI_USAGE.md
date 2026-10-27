@@ -57,3 +57,36 @@
   * <!-- Candidate to fill in: total time spent on this phase -->
 * **AI Mistakes & Corrections:**
   * <!-- Candidate to fill in: any AI missteps or corrections observed -->
+
+## Phase 3: Stock Transfers and Transfer History
+
+### Factual Record of AI Assistance
+* **Contracts:**
+  * Created `CreateTransferRequest` under `backend/MihiraStockTransfer.Api/Contracts/Requests/` with `FromBranchId`, `ToBranchId`, `ProductId`, and `Quantity`.
+  * Created `TransferResponse` under `backend/MihiraStockTransfer.Api/Contracts/Responses/` containing transfer identifiers, names, package description, quantity, and UTC timestamp.
+* **Service Layer & Domain Validation:**
+  * Defined `ITransferService` and `TransferService` with result type `TransferResult` categorizing `InvalidRequest`, `NotFound`, `InventoryConflict`, and `DatabaseContention`.
+  * Implemented business validation for positive quantity, distinct branches, resource existence, stock availability, and integer capacity.
+  * Implemented explicit EF Core database transactions with atomic conditional deduction via `ExecuteUpdateAsync` (`Quantity >= requested`) and destination increment.
+  * Implemented `GetTransferHistoryAsync` projecting to `TransferResponse` ordered by `CreatedAtUtc` descending and `Id` descending.
+  * Added specialized exception handling for SQLite busy/locked contention codes (5 and 6) returning safe retryable outcomes.
+  * Registered `ITransferService` as scoped in `Program.cs`.
+* **API Controller:**
+  * Implemented `TransfersController` exposing `POST /transfers` (200, 400, 404, 409, 503) and `GET /transfers` (200) with RFC 7807 `ProblemDetails` error responses and route metadata without `/api` prefix.
+* **Tooling & HTTP Specification:**
+  * Updated `backend/MihiraStockTransfer.Api/MihiraStockTransfer.Api.http` with requests covering valid transfers, insufficient stock, same branch, zero quantity, nonexistent product, and transfer history retrieval.
+* **Automated & Live Verification:**
+  * Added `TransferServiceTests.cs` covering valid transfers, full-balance transfers, validation rejections, stock conservation, history ordering, controller status code mappings, and multi-threaded concurrency using an isolated file-backed SQLite database.
+  * Executed live HTTP calls against running ASP.NET Core API verifying success, error problem details, and history retrieval.
+* **Documentation:**
+  * Updated `README.md` with Phase 3 transfer endpoints, concurrency details, error handling rules, and retry guidance.
+
+---
+
+### Personal Log (To be completed by Candidate)
+* **Personal Learning:**
+  * <!-- Candidate to fill in: what you learned during this phase -->
+* **Time Spent:**
+  * <!-- Candidate to fill in: total time spent on this phase -->
+* **AI Mistakes & Corrections:**
+  * <!-- Candidate to fill in: any AI missteps or corrections observed -->
