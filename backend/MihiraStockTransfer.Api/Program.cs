@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using MihiraStockTransfer.Api.Data;
+using MihiraStockTransfer.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +24,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(connectionStringBuilder.ToString()));
 
 builder.Services.AddScoped<DatabaseInitializer>();
+builder.Services.AddScoped<IInventoryQueryService, InventoryQueryService>();
 
 var app = builder.Build();
 
