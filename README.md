@@ -15,15 +15,15 @@ Based on the actual project configuration:
 ## 🏗️ Architecture & Technology Stack
 
 The project follows a layered architecture within a single API project:
-* **Controllers:** HTTP request handling and response delegation (`BranchesController`, `ProductsController`).
-* **Contracts/Requests & Responses:** API DTOs separated from persistence models (`BranchResponse`, `ProductResponse`, `StockItemResponse`, `BranchStockResponse`).
-* **Services:** Application operations and query abstractions (`IInventoryQueryService`, `InventoryQueryService`).
+* **Controllers:** HTTP request handling, response mapping, and status code negotiation (`BranchesController`, `ProductsController`, `TransfersController`).
+* **Contracts/Requests & Responses:** API DTOs separated from persistence models (`CreateTransferRequest`, `TransferResponse`, `BranchResponse`, `ProductResponse`, `BranchStockResponse`).
+* **Services:** Application operations and transfer validation rules (`IInventoryQueryService`, `ITransferService`).
 * **Models:** Entity Framework persistence entities (`Branch`, `Product`, `Stock`, `Transfer`).
 * **Data:** `AppDbContext`, Fluent API configurations, and `DatabaseInitializer`.
 
 ---
 
-## 📡 Available API Endpoints (Phase 2 Read APIs)
+## 📡 Available API Endpoints
 
 All endpoints use root routing (no `/api` prefix):
 
@@ -32,56 +32,86 @@ All endpoints use root routing (no `/api` prefix):
 | `GET` | `/branches` | Returns all branches ordered by ID. | `200 OK` |
 | `GET` | `/products` | Returns all products ordered by ID. | `200 OK` |
 | `GET` | `/branches/{id}/stock` | Returns current stock levels for the specified branch ID. | `200 OK`, `404 Not Found` |
+| `POST` | `/transfers` | Executes an immediate stock transfer between two branches. | `200 OK`, `400 Bad Request`, `404 Not Found`, `409 Conflict`, `503 Service Unavailable` |
+| `GET` | `/transfers` | Retrieves all successful transfer records (newest first). | `200 OK` |
 
-### Sample Response: `GET /branches/1/stock` (`200 OK`)
+---
+
+## 🔄 Stock Transfer Mechanics & Rules (Phase 3)
+
+### Validation Rules & Status Codes (`POST /transfers`)
+1. **Quantity Greater Than Zero (`400 Bad Request`):** Transfer quantity must be a positive whole number (`Quantity > 0`).
+2. **Distinct Branches (`400 Bad Request`):** Source and destination branches cannot be the same (`FromBranchId != ToBranchId`).
+3. **Resource Existence (`404 Not Found`):** Source branch, destination branch, and product must all exist.
+4. **Stock Availability & Integrity (`409 Conflict`):**
+   * Source stock must be sufficient (`Available >= Requested`).
+   * Source and destination stock records must exist.
+   * If source stock is insufficient or concurrent modification reduces available balance, the request is rejected with `409 Conflict`.
+5. **Database Contention (`503 Service Unavailable`):**
+   * If SQLite reports `SQLITE_BUSY` (code 5) or `SQLITE_LOCKED` (code 6) exceeding timeout, the transaction safely rolls back and returns HTTP 503.
+
+### Transaction Integrity & Concurrency Protection
+* **Explicit SQLite Transaction:** Every transfer executes within an explicit `BeginTransactionAsync` transaction scope.
+* **Atomic Conditional Deduction:** Source deduction uses `ExecuteUpdateAsync` with an atomic SQL predicate `WHERE BranchId = @from AND ProductId = @prod AND Quantity >= @qty`. If available balance dropped concurrently, 0 rows are affected, triggering immediate rollback.
+* **Conservation of Inventory:** Total units of a product across all branches remain unchanged. Destination increment and transfer audit records commit in the same transaction.
+* **Clean Rejection:** Rejected attempts leave all stock levels and transfer histories completely untouched. Rejected attempts are never persisted.
+* **No Automatic Client Retries:** A lost or dropped HTTP response does not indicate transfer failure. Clients must not blindly retry transfer submissions without checking branch stock, as idempotency keys are outside the scope of this phase.
+
+---
+
+### Sample Request: `POST /transfers` (`200 OK`)
 ```json
 {
-  "branchId": 1,
-  "branchName": "Colombo",
-  "items": [
-    {
-      "productId": 1,
-      "productName": "Rice",
-      "packageSize": "1 kg bag",
-      "quantity": 50
-    },
-    {
-      "productId": 2,
-      "productName": "Sugar",
-      "packageSize": "1 kg bag",
-      "quantity": 40
-    },
-    {
-      "productId": 3,
-      "productName": "Milk",
-      "packageSize": "1 L carton",
-      "quantity": 30
-    },
-    {
-      "productId": 4,
-      "productName": "Tea",
-      "packageSize": "200 g packet",
-      "quantity": 20
-    },
-    {
-      "productId": 5,
-      "productName": "Biscuits",
-      "packageSize": "100 g packet",
-      "quantity": 60
-    }
-  ]
+  "fromBranchId": 1,
+  "toBranchId": 2,
+  "productId": 1,
+  "quantity": 5
 }
 ```
 
-### Sample Response: `GET /branches/999/stock` (`404 Not Found`)
+### Sample Response: `POST /transfers` (`200 OK`)
 ```json
 {
-  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
-  "title": "Branch not found",
-  "status": 404,
-  "detail": "Branch with ID 999 does not exist.",
+  "id": 1,
+  "fromBranchId": 1,
+  "fromBranchName": "Colombo",
+  "toBranchId": 2,
+  "toBranchName": "Kandy",
+  "productId": 1,
+  "productName": "Rice",
+  "packageSize": "1 kg bag",
+  "quantity": 5,
+  "createdAtUtc": "2026-10-27T15:29:08.4091612Z"
+}
+```
+
+### Sample Response: `POST /transfers` (`409 Conflict`)
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.10",
+  "title": "Inventory conflict",
+  "status": 409,
+  "detail": "Insufficient stock for product 'Rice' at branch 'Colombo'. Available: 45, requested: 9999.",
   "traceId": "00-..."
 }
+```
+
+### Sample Response: `GET /transfers` (`200 OK`)
+```json
+[
+  {
+    "id": 1,
+    "fromBranchId": 1,
+    "fromBranchName": "Colombo",
+    "toBranchId": 2,
+    "toBranchName": "Kandy",
+    "productId": 1,
+    "productName": "Rice",
+    "packageSize": "1 kg bag",
+    "quantity": 5,
+    "createdAtUtc": "2026-10-27T15:29:08.4091612Z"
+  }
+]
 ```
 
 ---
