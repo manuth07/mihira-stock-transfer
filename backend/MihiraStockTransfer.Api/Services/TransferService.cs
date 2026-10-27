@@ -170,6 +170,12 @@ public class TransferService : ITransferService
             return TransferResult.DatabaseContention(
                 "The database is currently busy processing concurrent operations. Please retry shortly.");
         }
+        catch (DbUpdateException ex) when (ex.InnerException is SqliteException { SqliteErrorCode: 5 or 6 })
+        {
+            _logger.LogWarning(ex, "SQLite database contention (busy/locked) during transfer creation.");
+            return TransferResult.DatabaseContention(
+                "The database is currently busy processing concurrent operations. Please retry shortly.");
+        }
         catch (OperationCanceledException)
         {
             throw;
