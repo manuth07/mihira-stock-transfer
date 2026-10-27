@@ -159,7 +159,7 @@ All items are stored and transferred as packaged units. Quantities represent who
 
 ---
 
-## 🧪 Running the Backend & Tests
+## 🧪 Running the Backend & Automated Tests
 
 ### Run Backend API
 ```bash
@@ -168,9 +168,32 @@ dotnet run --project backend/MihiraStockTransfer.Api/MihiraStockTransfer.Api.csp
 API runs on `http://localhost:5197` (and `https://localhost:7229`).
 
 ### Run Backend Tests
+Run the entire solution test suite:
 ```bash
-dotnet test backend/MihiraStockTransfer.Api.Tests/MihiraStockTransfer.Api.Tests.csproj
+dotnet test backend/MihiraStockTransfer.slnx
 ```
+
+### Test Isolation Architecture
+Integration tests execute against real SQLite file engines using the `SqliteTestDatabase` test helper:
+* **Unique Ephemeral Database per Test:** Each test instance creates an isolated temporary directory in the OS temp directory with its own unique `mihira_test.db` SQLite database file.
+* **No Shared State:** Tests run concurrently in parallel without colliding or accessing the application's runtime `mihira.db` database.
+* **Connection Pooling Prevention:** Connection strings specify `Pooling=False` so SQLite releases file handles immediately upon context disposal, avoiding Windows file locks (`IOException`).
+* **Deterministic Cleanup:** `SqliteTestDatabase` implements `IAsyncDisposable` and `IDisposable`, calling `SqliteConnection.ClearAllPools()` and recursively deleting the ephemeral directory and database file upon test completion.
+
+### Business Guarantees Verified by the Test Suite
+The automated test suite (`backend/MihiraStockTransfer.Api.Tests`) validates all core business invariants:
+1. **Valid Transfer & Inventory Conservation:** Deducts exact quantity from source, adds exact quantity to destination, strictly conserves total product units across all branches, records a receipt with recent server UTC timestamps, and persists exactly one audit record.
+2. **Exact Available Stock:** Transferring 100% of available stock succeeds, leaves source stock at exactly 0, credits destination, and satisfies database check constraints (`Quantity >= 0`).
+3. **Insufficient Stock Protection:** Rejects transfers where requested quantity exceeds available stock with `409 Conflict`, leaving all stock levels and transfer history completely untouched.
+4. **Distinct Branches:** Rejects transfers where source equals destination with `400 Bad Request`, preventing self-transfers without modifying data.
+5. **Positive Quantity Enforcement:** Rejects zero and negative quantities with `400 Bad Request`, maintaining zero mutation.
+6. **Referential Integrity:** Rejects nonexistent source branches, destination branches, or products with `404 Not Found`, leaving database state untouched.
+7. **Inventory Safeguards:** Rejects requests when source or destination stock records are missing (`409 Conflict`), and protects against destination integer overflow (`int.MaxValue`) without data corruption.
+8. **Transaction Rollback Under Partial Execution:** Uses an EF Core `SaveChangesInterceptor` (`FailingTransferSaveInterceptor`) to inject an exception during transfer record insertion *after* atomic SQL deductions (`ExecuteUpdateAsync`) have run; verifies that the entire SQLite transaction rolls back cleanly, restoring source and destination stock balances to their initial values.
+9. **Concurrent Spending & Race Condition Safety:** Simulates concurrent spending with coordinated worker tasks (`Barrier`) competing for limited inventory (two concurrent requests for 8 units from 10 available units); verifies that exactly one request succeeds and one fails, source stock ends at 2 (never negative), destination is credited 8, total stock is conserved, and exactly one transfer is recorded.
+10. **Transfer History Ordering & Filtering:** Confirms history is empty when no transfers exist, returns successful transfers ordered newest first (`CreatedAtUtc` descending), uses deterministic secondary sorting (`Id` descending) for equal timestamps, and proves rejected/failed attempts never appear in history.
+
+---
 
 ### Manual Testing with `.http` File
 Use `backend/MihiraStockTransfer.Api/MihiraStockTransfer.Api.http` with the VS Code REST Client or Antigravity IDE HTTP runner.

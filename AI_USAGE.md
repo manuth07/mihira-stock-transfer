@@ -90,3 +90,41 @@
   * <!-- Candidate to fill in: total time spent on this phase -->
 * **AI Mistakes & Corrections:**
   * <!-- Candidate to fill in: any AI missteps or corrections observed -->
+
+---
+
+## Phase 4: Automated Test Suite for Transfer Rules and Persistence Guarantees
+
+### Factual Record of AI Assistance
+* **Test Infrastructure & Isolation:**
+  * Created `SqliteTestDatabase` under `backend/MihiraStockTransfer.Api.Tests/Infrastructure/` providing isolated, temporary, file-backed SQLite database instances per test.
+  * Configured connection strings with `Pooling=False` and implemented disposable/async-disposable cleanup calling `SqliteConnection.ClearAllPools()` to prevent Windows file locking issues during test teardown.
+  * Created `FailingTransferSaveInterceptor` implementing `SaveChangesInterceptor` to simulate controlled database failures when saving `Transfer` entities.
+* **Test Suite Implementation (`TransferServiceTests.cs`):**
+  * Implemented focused integration tests covering the 10 assessment areas against real SQLite database instances:
+    1. Valid transfer verifying source deduction, destination increment, cross-branch inventory conservation, receipt mapping, and server-generated UTC timestamp validity.
+    2. Exact available stock transfer verifying 100% stock transfer leaves source at 0 without violating the `Quantity >= 0` check constraint.
+    3. Insufficient stock rejection verifying `409 Conflict` outcome and zero database mutation.
+    4. Same-branch rejection verifying `400 Bad Request` outcome and zero database mutation.
+    5. Nonpositive quantity validation (zero and negative) verifying `400 Bad Request` outcome and zero database mutation.
+    6. Nonexistent reference lookups (source branch, destination branch, product) verifying `404 Not Found` outcome and zero database mutation.
+    7. Inventory safeguards verifying graceful conflict handling for missing source stock rows, missing destination stock rows, and destination integer capacity overflow.
+    8. Transaction rollback verifying that a failure during transfer record insertion safely rolls back preceding `ExecuteUpdateAsync` deductions and increments.
+    9. Concurrent spending verifying that two coordinated tasks competing for 8 units from 10 available units result in exactly one success and one failure, leaving stock at 2 (never negative), crediting 8 units, conserving total stock, and recording a single transfer.
+    10. History ordering and filtering verifying empty collections for new databases, newest-first ordering, deterministic tie-breaking by `Id` descending for equal timestamps, and complete exclusion of rejected attempts.
+  * Maintained HTTP controller response status code mapping tests for `TransfersController`.
+* **Production Code Refinement:**
+  * Refined `TransferService.cs` exception handling to catch `DbUpdateException` wrapping SQLite busy/locked codes (5 or 6) in addition to direct `SqliteException`, ensuring consistent retryable outcomes across both direct SQL and change-tracker persistence.
+* **Documentation:**
+  * Updated `README.md` with instructions to run all tests via `dotnet test backend/MihiraStockTransfer.slnx`, test isolation details, and business guarantee summaries.
+  * Appended Phase 4 record to `AI_USAGE.md`.
+
+---
+
+### Personal Log (To be completed by Candidate)
+* **Personal Learning:**
+  * <!-- Candidate to fill in: what you learned during this phase -->
+* **Time Spent:**
+  * <!-- Candidate to fill in: total time spent on this phase -->
+* **AI Mistakes & Corrections:**
+  * <!-- Candidate to fill in: any AI missteps or corrections observed -->
