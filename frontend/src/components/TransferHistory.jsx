@@ -9,7 +9,7 @@ function formatLocalDateTime(timestampStr) {
   const normalizedStr = hasTimeZone ? timestampStr : `${timestampStr}Z`
 
   const date = new Date(normalizedStr)
-  if (isNaN(date.getTime())) {
+  if (Number.isNaN(date.getTime())) {
     return timestampStr
   }
 
