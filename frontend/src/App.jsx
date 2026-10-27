@@ -137,7 +137,7 @@ export default function App() {
       }
     }
 
-    initialLoad()
+    void initialLoad()
 
     return () => {
       ignore = true

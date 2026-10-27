@@ -337,7 +337,11 @@ export default function TransferForm({
                 role="spinbutton"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                aria-valuenow={quantity && !isNaN(Number(quantity)) ? Number(quantity) : undefined}
+                aria-valuenow={
+                  quantity.trim() !== '' && !Number.isNaN(Number(quantity))
+                    ? Number(quantity)
+                    : undefined
+                }
                 aria-valuemin={1}
                 aria-valuemax={MAX_QUANTITY}
                 className={`form-input quantity-input ${validationErrors.quantity ? 'input-error' : ''}`}
