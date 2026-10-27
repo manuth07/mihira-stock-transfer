@@ -26,6 +26,13 @@
 
 ---
 
+### Personal Log (To be completed by Candidate)
+* **Personal Learning:**
+  * <!-- Candidate to fill in: what you learned during this phase -->
+* **Time Spent:**
+  * <!-- Candidate to fill in: total time spent on this phase -->
+* **AI Mistakes & Corrections:**
+  * <!-- Candidate to fill in: any AI missteps or corrections observed -->
 
 ## Phase 2: Read APIs for Branches, Products, and Stock
 
@@ -118,6 +125,49 @@
 * **Documentation:**
   * Updated `README.md` with instructions to run all tests via `dotnet test backend/MihiraStockTransfer.slnx`, test isolation details, and business guarantee summaries.
   * Appended Phase 4 record to `AI_USAGE.md`.
+
+---
+
+### Personal Log (To be completed by Candidate)
+* **Personal Learning:**
+  * <!-- Candidate to fill in: what you learned during this phase -->
+* **Time Spent:**
+  * <!-- Candidate to fill in: total time spent on this phase -->
+* **AI Mistakes & Corrections:**
+  * <!-- Candidate to fill in: any AI missteps or corrections observed -->
+
+---
+
+## Phase 5: Single-Page React User Interface
+
+### Factual Record of AI Assistance
+* **Typography & Bundling:**
+  * Installed `@fontsource/inter` (normal weights 400, 500, 600, 700) and imported into `main.jsx` for Vite bundle inclusion without external CDN requests.
+  * Applied `Inter` font family globally across all UI elements, inputs, selects, and buttons with tabular numeral styling for quantitative columns.
+* **Vite Development Proxy Configuration:**
+  * Configured `vite.config.js` development proxy forwarding local `/api/*` requests to the ASP.NET Core backend at `http://localhost:5197/*` with URL rewrite.
+* **API Integration Layer (`services/inventoryApi.js`):**
+  * Created centralized API client module using native `fetch` covering all backend endpoints (`GET /branches`, `GET /products`, `GET /branches/{id}/stock`, `POST /transfers`, `GET /transfers`).
+  * Implemented `ApiError` class distinguishing client-side network failures from explicit backend HTTP error responses.
+  * Handled RFC 7807 `ProblemDetails` (`detail`/`title`), `ValidationProblemDetails` (`errors`), and non-JSON error fallbacks.
+  * Added `AbortSignal` support for cancellable queries and strictly prevented automatic client retries for `POST /transfers`.
+* **Component Architecture & UI Implementation:**
+  * Created `AppHeader.jsx` with the exact wordmark "MIHIRA STORES" in navy on a white background with a thin bottom border.
+  * Created `StockTable.jsx` rendering dynamic branch columns, product and package descriptions, right-aligned tabular numerals, empty/error/loading state boundaries, and a manual refresh action.
+  * Created `TransferForm.jsx` with controlled native inputs, dynamic availability guidance ("Available: X packages · Y each"), self-transfer prevention with automatic destination reset, positive whole-number validation within `int.MaxValue`, in-flight submission disabling ("Transferring..."), explicit business rejection alerts, network failure advisories, and quantity reset upon confirmed success.
+  * Created `TransferHistory.jsx` rendering audit records newest first with local date/time formatting, timezone normalization for SQLite-serialized timestamps, and distinct empty/error/loading states.
+  * Created `App.jsx` coordinating root data loading, parallel requests, manual refreshes, and post-transfer updates with independent failure handling.
+* **Styling & Assets:**
+  * Developed custom CSS in `index.css` and `App.css` utilizing CSS custom properties for white-and-navy palettes (`#FFFFFF`, `#142B49`), restrained borders, accessible focus outlines, responsive form field stacking, and table overflow containment.
+  * Removed default Vite/React starter assets and set document title to "Mihira Stores | Stock Transfers".
+* **Verification & Testing:**
+  * Verified zero errors or warnings via ESLint (`npm run lint`).
+  * Verified successful production bundle creation via Vite (`npm run build`).
+  * Verified all 37 backend tests pass via `dotnet test backend/MihiraStockTransfer.slnx`.
+  * Verified live end-to-end proxy communication, stock retrieval, transfer execution, conflict rejection, and history updates.
+* **Documentation:**
+  * Updated `README.md` with frontend installation via `npm ci`, startup commands, proxy behavior, user flow, and font bundling details.
+  * Appended Phase 5 entry to `AI_USAGE.md`.
 
 ---
 
