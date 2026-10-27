@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { createTransfer } from '../services/inventoryApi'
 
+const MAX_QUANTITY = 2147483647
+
 export default function TransferForm({
   branches,
   products,
@@ -38,11 +40,62 @@ export default function TransferForm({
     setFeedback(null)
   }
 
+  // Accepts only an empty string or ASCII digits (/^[0-9]*$/). Rejects invalid edits.
   const handleQuantityChange = (e) => {
-    setQuantity(e.target.value)
+    const val = e.target.value
+    if (val === '' || /^[0-9]*$/.test(val)) {
+      setQuantity(val)
+      setValidationErrors((prev) => ({ ...prev, quantity: undefined }))
+      setFeedback(null)
+    }
+  }
+
+  // Step up: empty starts at 1; otherwise increments by 1 up to MAX_QUANTITY
+  const handleStepUp = () => {
+    if (isSubmitting) return
+
     setValidationErrors((prev) => ({ ...prev, quantity: undefined }))
     setFeedback(null)
+
+    if (!quantity) {
+      setQuantity('1')
+      return
+    }
+
+    const current = Number(quantity)
+    if (Number.isSafeInteger(current) && current < MAX_QUANTITY) {
+      setQuantity(String(current + 1))
+    }
   }
+
+  // Step down: decreases by 1; does nothing if empty or <= 1
+  const handleStepDown = () => {
+    if (isSubmitting || !quantity) return
+
+    const current = Number(quantity)
+    if (current <= 1) return
+
+    setValidationErrors((prev) => ({ ...prev, quantity: undefined }))
+    setFeedback(null)
+
+    setQuantity(String(current - 1))
+  }
+
+  // Keyboard navigation: ArrowUp/ArrowDown when the input is focused
+  const handleQuantityKeyDown = (e) => {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      handleStepUp()
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      handleStepDown()
+    }
+  }
+
+  const isQuantityEmpty = quantity === ''
+  const numericQuantity = isQuantityEmpty ? 0 : Number(quantity)
+  const isDecrementDisabled = isSubmitting || isQuantityEmpty || numericQuantity <= 1
+  const isIncrementDisabled = isSubmitting || (!isQuantityEmpty && numericQuantity >= MAX_QUANTITY)
 
   // Determine availability hint for selected branch and product
   const selectedProduct = products.find((p) => p.id === Number(productId))
@@ -87,7 +140,7 @@ export default function TransferForm({
       errors.quantity = 'Quantity must be a positive whole number greater than zero.'
     } else {
       const num = Number(trimmedQuantity)
-      if (!Number.isSafeInteger(num) || num > 2147483647) {
+      if (!Number.isSafeInteger(num) || num > MAX_QUANTITY) {
         errors.quantity = 'Quantity exceeds the maximum allowed limit (2,147,483,647).'
       }
     }
@@ -276,26 +329,69 @@ export default function TransferForm({
             <label htmlFor="quantity" className="form-label">
               Quantity (packages)
             </label>
-            <input
-              id="quantity"
-              name="quantity"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              className={`form-input ${validationErrors.quantity ? 'input-error' : ''}`}
-              placeholder="e.g. 5"
-              value={quantity}
-              onChange={handleQuantityChange}
-              disabled={isSubmitting}
-              aria-describedby={
-                validationErrors.quantity
-                  ? 'quantity-error'
-                  : availabilityHint
-                  ? 'quantity-hint'
-                  : undefined
-              }
-              aria-invalid={!!validationErrors.quantity}
-            />
+            <div className="quantity-input-wrapper">
+              <input
+                id="quantity"
+                name="quantity"
+                type="text"
+                role="spinbutton"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                aria-valuenow={quantity && !isNaN(Number(quantity)) ? Number(quantity) : undefined}
+                aria-valuemin={1}
+                aria-valuemax={MAX_QUANTITY}
+                className={`form-input quantity-input ${validationErrors.quantity ? 'input-error' : ''}`}
+                placeholder="e.g. 5"
+                value={quantity}
+                onChange={handleQuantityChange}
+                onKeyDown={handleQuantityKeyDown}
+                disabled={isSubmitting}
+                aria-describedby={
+                  validationErrors.quantity
+                    ? 'quantity-error'
+                    : availabilityHint
+                    ? 'quantity-hint'
+                    : undefined
+                }
+                aria-invalid={!!validationErrors.quantity}
+              />
+              <div className="quantity-steppers">
+                <button
+                  type="button"
+                  className="stepper-btn stepper-up"
+                  aria-label="Increase quantity"
+                  onClick={handleStepUp}
+                  disabled={isIncrementDisabled}
+                >
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+                    <path
+                      d="M1 5L5 1L9 5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="stepper-btn stepper-down"
+                  aria-label="Decrease quantity"
+                  onClick={handleStepDown}
+                  disabled={isDecrementDisabled}
+                >
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+                    <path
+                      d="M1 1L5 5L9 1"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
             {validationErrors.quantity ? (
               <span id="quantity-error" className="field-error" role="alert">
                 {validationErrors.quantity}
